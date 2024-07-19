@@ -1,25 +1,64 @@
 import { useEffect, useState } from "react";
 import { Bomb, Goal, Timer } from "lucide-react";
 
+type Square = {
+  id: number;
+  position: { row: number; col: number };
+  playAnimation: boolean;
+  revealed: boolean;
+  hasFlag: boolean;
+  hasBomb: boolean;
+  bombsNearby: number;
+};
+
+type Grid = Square[][];
+
+type GridOptions = { rows: number; cols: number; bombs: number };
+
+type Difficulty = "easy" | "medium" | "hard";
+
+const gridDifficulty = {
+  easy: { rows: 10, cols: 8, bombs: 10 },
+  medium: { rows: 10, cols: 12, bombs: 25 },
+  hard: { rows: 10, cols: 16, bombs: 40 },
+};
+
 function App() {
-  const CreateGrid = (rows: number, cols: number) => {
-    const grid = Array.from({ length: rows }, (_, rowIndex) =>
+  const CreateGrid = ({ rows, cols, bombs }: GridOptions): Grid => {
+    const grid: Grid = Array.from({ length: rows }, (_, rowIndex) =>
       Array.from({ length: cols }, (_, colIndex) => ({
         id: rowIndex * cols + colIndex + 1,
         position: { row: rowIndex, col: colIndex },
         playAnimation: false,
-        reveled: false,
+        revealed: false,
         hasFlag: false,
-        hasBomb: Math.random() < 0.2,
+        hasBomb: false,
         bombsNearby: 0,
-        siblings: [],
       })),
     );
+
+    const placeBombs = (grid: Grid, bombs: number) => {
+      let placedBombs = 0;
+      const totalCells = rows * cols;
+
+      while (placedBombs < bombs) {
+        const randomIndex = Math.floor(Math.random() * totalCells);
+        const row = Math.floor(randomIndex / cols);
+        const col = randomIndex % cols;
+
+        if (!grid[row][col].hasBomb) {
+          grid[row][col].hasBomb = true;
+          placedBombs++;
+        }
+      }
+    };
+
+    placeBombs(grid, bombs);
 
     grid.flatMap((row, idxRow) =>
       row.map((col, idxCol) => {
         const siblings = CheckSiblings({ row: idxRow, col: idxCol }, grid);
-        col.bombsNearby = siblings.filter((r) => r.hasBomb).length;
+        col.bombsNearby = siblings.filter((r) => r?.hasBomb).length;
         return col;
       }),
     );
@@ -27,7 +66,7 @@ function App() {
     return grid;
   };
 
-  const CheckSiblings = (current: { row: number; col: number }, arr) => {
+  const CheckSiblings = (current: { row: number; col: number }, grid: Grid) => {
     const directions = [
       [-1, -1],
       [-1, 0],
@@ -40,7 +79,7 @@ function App() {
     ];
 
     return directions
-      .map(([dr, dc]) => arr?.[current.row + dr]?.[current.col + dc])
+      .map(([dr, dc]) => grid?.[current.row + dr]?.[current.col + dc])
       .filter((value) => value !== undefined);
   };
 
@@ -49,7 +88,7 @@ function App() {
       return prevGrid.map((row, rowIndex) =>
         row.map((square, colIndex) => {
           if (rowIndex === current.row && colIndex === current.col) {
-            const newCell = { ...square, reveled: true, playAnimation: true };
+            const newCell = { ...square, revealed: true, playAnimation: true };
 
             setTimeout(() => {
               setGrid((prevGrid) => {
@@ -93,10 +132,10 @@ function App() {
 
     if (selected.bombsNearby === 0) {
       const legalSpots = CheckSiblings(selected.position, grid)
-        .filter((s) => !s.hasBomb)
-        .filter((s) => !s.hasFlag);
+        .filter((s: Square) => !s.hasBomb)
+        .filter((s: Square) => !s.hasFlag);
 
-      legalSpots.map((sibling) => {
+      legalSpots.map((sibling: Square) => {
         CheckSquare(sibling.position);
       });
     }
@@ -109,7 +148,7 @@ function App() {
           if (
             rowIndex === current.row &&
             colIndex === current.col &&
-            !cell.reveled
+            !cell.revealed
           ) {
             return { ...cell, hasFlag: !cell.hasFlag };
           }
@@ -119,12 +158,21 @@ function App() {
     });
   };
 
-  const [grid, setGrid] = useState(CreateGrid(3, 3));
+  const [difficulty] = useState<Difficulty>("easy");
+  const [grid, setGrid] = useState<Grid>(
+    CreateGrid(gridDifficulty[difficulty]),
+  );
+
   const [timer, setTimer] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);
   const [isGameWon, setIsGameWon] = useState(false);
 
-  const TryAgain = () => setIsGameOver(false);
+  const ResetGame = () => {
+    setGrid(CreateGrid(gridDifficulty[difficulty]));
+    setTimer(0);
+    setIsGameOver(false);
+    setIsGameWon(false);
+  };
 
   useEffect(() => {
     const timerHandler = setInterval(() => {
@@ -141,7 +189,7 @@ function App() {
 
     const remainingSquares = squares
       .filter((s) => !s.hasBomb)
-      .filter((s) => !s.reveled);
+      .filter((s) => !s.revealed);
 
     setIsGameWon(remainingSquares.length === 0);
   }, [grid]);
@@ -154,16 +202,16 @@ function App() {
   }
 
   return (
-    <main className="bg-stone-800 w-full h-svh grid place-content-center text-amber-50">
+    <main className="relative bg-stone-800 w-full h-max min-h-dvh grid place-content-center px-6 text-amber-50">
       {isGameOver && (
-        <div className="absolute z-50 animate-fadeIn bg-stone-900/90 w-svw h-svh grid place-content-center">
+        <div className="absolute z-50 animate-fadeIn bg-stone-900/90 size-full grid place-content-center">
           <h1 className="text-center font-extrabold font-mono my-12 text-4xl">
             GAME OVER
           </h1>
 
           <button
             className="group relative inline-flex h-12 items-center border justify-center overflow-hidden rounded-md bg-transparent px-6 font-medium text-neutral-200 transition hover:scale-110"
-            onClick={TryAgain}
+            onClick={ResetGame}
           >
             <span className="uppercase">Try again</span>
             <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-100%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(100%)]">
@@ -174,14 +222,14 @@ function App() {
       )}
 
       {isGameWon && (
-        <div className="absolute z-50 animate-fadeIn bg-stone-900/90 w-svw space-y-12 h-svh grid place-content-center">
+        <div className="absolute z-50 animate-fadeIn bg-stone-900/90 size-full space-y-12 h-svh grid place-content-center">
           <h1 className="text-center font-extrabold font-mono text-4xl">
             VOCÊ GANHOU
           </h1>
 
           <button
             className="group relative inline-flex h-12 items-center border justify-center overflow-hidden rounded-md bg-transparent px-6 font-medium text-neutral-200 transition hover:scale-110"
-            onClick={TryAgain}
+            onClick={ResetGame}
           >
             <span className="uppercase">Jogar novamente</span>
             <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-100%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(100%)]">
@@ -203,18 +251,18 @@ function App() {
         Mined Sonar
       </h1>
 
-      <div className="flex w-max mx-auto h-max rounded-lg  border border-stone-200">
+      <div className="flex w-max mx-auto h-max rounded-lg overflow-hidden border border-stone-200">
         {grid.map((row, idxRow) => (
           <div key={idxRow}>
             {row.map(
               (
-                { id, bombsNearby, reveled, playAnimation, hasBomb, hasFlag },
+                { id, bombsNearby, revealed, playAnimation, hasBomb, hasFlag },
                 idxCell,
               ) => {
                 return (
                   <div
                     key={id}
-                    className={`border relative size-16 md:size-24 cursor-pointer transition-colors select-none aspect-square grid place-content-center border-stone-200 ${reveled ? "bg-green-500/10" : "bg-stone-700/10"}`}
+                    className={`border relative size-8 md:size-12 overflow-hidden cursor-pointer transition-colors select-none aspect-square grid place-content-center border-stone-200 ${revealed ? (hasBomb ? "bg-red-700/30" : "bg-green-800/50") : "bg-stone-700/10"}`}
                     onClick={() => {
                       if (!playAnimation)
                         ClickHandler({ row: idxRow, col: idxCell });
@@ -225,24 +273,24 @@ function App() {
                     }}
                   >
                     <div
-                      className={`absolute size-full transition-colors duration-300 ${playAnimation ? "bg-stone-800/50" : "bg-transparent"}`}
+                      className={`absolute size-full transition-colors duration-300 ${playAnimation ? "bg-stone-900/70" : "bg-transparent"}`}
                     />
 
-                    {hasFlag && <Goal />}
+                    {hasFlag && <Goal className="size-4 md:size-6" />}
 
-                    {reveled && (
-                      <div className={`${"block "}`}>
+                    {revealed && (
+                      <>
                         {hasBomb ? (
-                          <Bomb />
+                          <Bomb className="size-4 md:size-6" />
                         ) : (
                           <div className="relative">
                             <div
-                              className={`size-4 rounded-full border opacity-0 border-stone-200/50 ${playAnimation ? "animate-sonar" : "animate-none"}`}
+                              className={`size-2 rounded-full border opacity-0 border-stone-200/50 md:size-4 ${playAnimation ? "animate-sonar" : "animate-none"}`}
                               style={{ animationIterationCount: bombsNearby }}
                             />
                           </div>
                         )}
-                      </div>
+                      </>
                     )}
                   </div>
                 );
