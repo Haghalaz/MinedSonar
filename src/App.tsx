@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import useSound from "use-sound";
 
 import { Bomb, Goal, Timer } from "lucide-react";
@@ -166,12 +166,13 @@ function App() {
   const [isGameOver, setIsGameOver] = useState(false);
   const [isGameWon, setIsGameWon] = useState(false);
 
-  const ResetGame = () => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  const ResetGame = useCallback(() => {
     setGrid(CreateGrid(gridDifficulty[difficulty]));
     setTimer(0);
     setIsGameOver(false);
     setIsGameWon(false);
-  };
+  }, [difficulty]);
 
   const handleValueChange = (v: string | null) => {
     const newDifficulty: Difficulty = (v as Difficulty) || "easy";
@@ -196,10 +197,9 @@ function App() {
     setIsGameWon(remainingSquares.length === 0);
   }, [grid]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     ResetGame();
-  }, [difficulty]);
+  }, [ResetGame]);
 
   function formatTime(seconds: number): string {
     const h = String(Math.floor(seconds / 3600)).padStart(2, "0");
