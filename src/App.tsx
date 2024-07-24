@@ -173,6 +173,11 @@ function App() {
     setIsGameWon(false);
   };
 
+  const handleValueChange = (v: string | null) => {
+    const newDifficulty: Difficulty = (v as Difficulty) || "easy";
+    setDifficulty(newDifficulty);
+  };
+
   useEffect(() => {
     const timerHandler = setInterval(() => {
       setTimer((prevState) => prevState + 1);
@@ -294,7 +299,7 @@ function App() {
           <p>{formatTime(timer)}</p>
         </div>
 
-        <Select value={difficulty} onValueChange={setDifficulty}>
+        <Select defaultValue={difficulty} value={difficulty} onValueChange={handleValueChange}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Dificuldade" />
           </SelectTrigger>
