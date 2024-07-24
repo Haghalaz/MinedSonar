@@ -1,5 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import useSound from "use-sound";
+
 import { Bomb, Goal, Timer } from "lucide-react";
+
+import clap from "./assets/sounds/clap.mp3";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
 
 type Square = {
   id: number;
@@ -24,6 +29,8 @@ const gridDifficulty = {
 };
 
 function App() {
+  const [play] = useSound(clap as string);
+
   const CreateGrid = ({ rows, cols, bombs }: GridOptions): Grid => {
     const grid: Grid = Array.from({ length: rows }, (_, rowIndex) =>
       Array.from({ length: cols }, (_, colIndex) => ({
@@ -78,9 +85,7 @@ function App() {
       [1, 1],
     ];
 
-    return directions
-      .map(([dr, dc]) => grid?.[current.row + dr]?.[current.col + dc])
-      .filter((value) => value !== undefined);
+    return directions.map(([dr, dc]) => grid?.[current.row + dr]?.[current.col + dc]).filter((value) => value !== undefined);
   };
 
   const CheckSquare = (current: { row: number; col: number }) => {
@@ -112,15 +117,15 @@ function App() {
   };
 
   const ClickHandler = (current: { row: number; col: number }) => {
+    play();
+
     const selected = grid[current.row][current.col];
     const squares = grid.flat();
 
     if (selected.hasFlag) return;
 
     if (selected.hasBomb) {
-      const bombedSquares = squares
-        .filter((s) => s.hasBomb)
-        .filter((s) => !s.hasFlag);
+      const bombedSquares = squares.filter((s) => s.hasBomb).filter((s) => !s.hasFlag);
 
       bombedSquares.map((sibling) => CheckSquare(sibling.position));
 
@@ -145,11 +150,7 @@ function App() {
     setGrid((prevGrid) => {
       return prevGrid.map((row, rowIndex) =>
         row.map((cell, colIndex) => {
-          if (
-            rowIndex === current.row &&
-            colIndex === current.col &&
-            !cell.revealed
-          ) {
+          if (rowIndex === current.row && colIndex === current.col && !cell.revealed) {
             return { ...cell, hasFlag: !cell.hasFlag };
           }
           return { ...cell };
@@ -158,20 +159,24 @@ function App() {
     });
   };
 
-  const [difficulty] = useState<Difficulty>("easy");
-  const [grid, setGrid] = useState<Grid>(
-    CreateGrid(gridDifficulty[difficulty]),
-  );
+  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const [grid, setGrid] = useState<Grid>(CreateGrid(gridDifficulty[difficulty]));
 
   const [timer, setTimer] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);
   const [isGameWon, setIsGameWon] = useState(false);
 
-  const ResetGame = () => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  const ResetGame = useCallback(() => {
     setGrid(CreateGrid(gridDifficulty[difficulty]));
     setTimer(0);
     setIsGameOver(false);
     setIsGameWon(false);
+  }, [difficulty]);
+
+  const handleValueChange = (v: string | null) => {
+    const newDifficulty: Difficulty = (v as Difficulty) || "easy";
+    setDifficulty(newDifficulty);
   };
 
   useEffect(() => {
@@ -187,12 +192,14 @@ function App() {
   useEffect(() => {
     const squares = grid.flat();
 
-    const remainingSquares = squares
-      .filter((s) => !s.hasBomb)
-      .filter((s) => !s.revealed);
+    const remainingSquares = squares.filter((s) => !s.hasBomb).filter((s) => !s.revealed);
 
     setIsGameWon(remainingSquares.length === 0);
   }, [grid]);
+
+  useEffect(() => {
+    ResetGame();
+  }, [ResetGame]);
 
   function formatTime(seconds: number): string {
     const h = String(Math.floor(seconds / 3600)).padStart(2, "0");
@@ -205,17 +212,12 @@ function App() {
     <main className="relative bg-stone-800 w-full h-max min-h-dvh grid place-content-center px-6 text-amber-50">
       {isGameOver && (
         <div className="absolute z-50 animate-fadeIn bg-stone-900/90 size-full grid place-content-center">
-          <h1 className="text-center font-extrabold font-mono my-12 text-4xl">
-            GAME OVER
-          </h1>
+          <h1 className="text-center font-extrabold font-mono my-12 text-4xl">GAME OVER</h1>
 
-          <button
-            className="group relative inline-flex h-12 items-center border justify-center overflow-hidden rounded-md bg-transparent px-6 font-medium text-neutral-200 transition hover:scale-110"
-            onClick={ResetGame}
-          >
+          <button className="group relative inline-flex h-12 items-center border justify-center overflow-hidden rounded-md bg-transparent px-6 font-medium text-neutral-200 transition hover:scale-110" onClick={ResetGame} type="button">
             <span className="uppercase">Try again</span>
             <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-100%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(100%)]">
-              <div className="relative h-full w-8 bg-white/20"></div>
+              <div className="relative h-full w-8 bg-white/20" />
             </div>
           </button>
         </div>
@@ -223,17 +225,12 @@ function App() {
 
       {isGameWon && (
         <div className="absolute z-50 animate-fadeIn bg-stone-900/90 size-full space-y-12 h-svh grid place-content-center">
-          <h1 className="text-center font-extrabold font-mono text-4xl">
-            VOCÊ GANHOU
-          </h1>
+          <h1 className="text-center font-extrabold font-mono text-4xl">VOCÊ GANHOU</h1>
 
-          <button
-            className="group relative inline-flex h-12 items-center border justify-center overflow-hidden rounded-md bg-transparent px-6 font-medium text-neutral-200 transition hover:scale-110"
-            onClick={ResetGame}
-          >
+          <button className="group relative inline-flex h-12 items-center border justify-center overflow-hidden rounded-md bg-transparent px-6 font-medium text-neutral-200 transition hover:scale-110" onClick={ResetGame} type="button">
             <span className="uppercase">Jogar novamente</span>
             <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-100%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(100%)]">
-              <div className="relative h-full w-8 bg-white/20"></div>
+              <div className="relative h-full w-8 bg-white/20" />
             </div>
           </button>
 
@@ -247,55 +244,46 @@ function App() {
         </div>
       )}
 
-      <h1 className="text-center font-extrabold font-mono my-12 text-4xl">
-        Mined Sonar
-      </h1>
+      <h1 className="text-center font-extrabold font-mono my-12 text-4xl">Mined Sonar</h1>
 
       <div className="flex w-max mx-auto h-max rounded-lg overflow-hidden border border-stone-200">
         {grid.map((row, idxRow) => (
-          <div key={idxRow}>
-            {row.map(
-              (
-                { id, bombsNearby, revealed, playAnimation, hasBomb, hasFlag },
-                idxCell,
-              ) => {
-                return (
-                  <div
-                    key={id}
-                    className={`border relative size-8 md:size-12 overflow-hidden cursor-pointer transition-colors select-none aspect-square grid place-content-center border-stone-200 ${revealed ? (hasBomb ? "bg-red-700/30" : "bg-green-800/50") : "bg-stone-700/10"}`}
-                    onClick={() => {
-                      if (!playAnimation)
-                        ClickHandler({ row: idxRow, col: idxCell });
-                    }}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      FlagArea({ row: idxRow, col: idxCell });
-                    }}
-                  >
-                    <div
-                      className={`absolute size-full transition-colors duration-300 ${playAnimation ? "bg-stone-900/70" : "bg-transparent"}`}
-                    />
+          // biome-ignore lint/suspicious/noArrayIndexKey: No data to avoid use index
+          <div key={`col-${idxRow}`}>
+            {row.map(({ id, bombsNearby, revealed, playAnimation, hasBomb, hasFlag }, idxCell) => {
+              return (
+                <div
+                  key={id}
+                  className={`border relative size-8 md:size-12 overflow-hidden cursor-pointer transition-colors select-none aspect-square grid place-content-center border-stone-200 ${revealed ? (hasBomb ? "bg-red-700/30" : "bg-green-800/50") : "bg-stone-700/10"}`}
+                  onClick={() => {
+                    if (!playAnimation) ClickHandler({ row: idxRow, col: idxCell });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") ClickHandler({ row: idxRow, col: idxCell });
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    FlagArea({ row: idxRow, col: idxCell });
+                  }}
+                >
+                  <div className={`absolute size-full transition-colors duration-300 ${playAnimation ? "bg-stone-900/70" : "bg-transparent"}`} />
 
-                    {hasFlag && <Goal className="size-4 md:size-6" />}
+                  {hasFlag && <Goal className="size-4 md:size-6" />}
 
-                    {revealed && (
-                      <>
-                        {hasBomb ? (
-                          <Bomb className="size-4 md:size-6" />
-                        ) : (
-                          <div className="relative">
-                            <div
-                              className={`size-2 rounded-full border opacity-0 border-stone-200/50 md:size-4 ${playAnimation ? "animate-sonar" : "animate-none"}`}
-                              style={{ animationIterationCount: bombsNearby }}
-                            />
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                );
-              },
-            )}
+                  {revealed && (
+                    <>
+                      {hasBomb ? (
+                        <Bomb className="size-4 md:size-6" />
+                      ) : (
+                        <div className="relative">
+                          <div className={`size-2 rounded-full border opacity-0 border-stone-200/50 md:size-4 ${playAnimation ? "animate-sonar" : "animate-none"}`} style={{ animationIterationCount: bombsNearby }} />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
@@ -305,10 +293,22 @@ function App() {
           <Bomb className="size-4" />
           <p>{grid.flat().filter((r) => r.hasBomb).length}</p>
         </div>
+
         <div className="items-center flex gap-2 font-bold">
           <Timer className="size-4" />
           <p>{formatTime(timer)}</p>
         </div>
+
+        <Select defaultValue={difficulty} value={difficulty} onValueChange={handleValueChange}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Dificuldade" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="easy">Fácil</SelectItem>
+            <SelectItem value="medium">Médio</SelectItem>
+            <SelectItem value="hard">Difícil</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </main>
   );
