@@ -318,7 +318,7 @@ function App() {
         ))}
       </div>
 
-      <div className="mx-auto my-8 flex items-center gap-12">
+      <div className="w-full justify-center my-8 flex flex-wrap items-center gap-12">
         <button onClick={toggleMute} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && toggleMute()} type="button">
           {mute ? <VolumeX className="size-6" /> : <Volume2 className="size-6" />}
         </button>
@@ -345,10 +345,10 @@ function App() {
         </Select>
       </div>
 
-      <div className="absolute hidden items-center right-12 bottom-6 md:flex">
-        <p className="text-md">Feito por Luiz Coelho </p>
+      <div className="absolute hidden items-center right-12 bottom-6 gap-4 md:flex">
+        <p className="text-sm">Feito por Luiz Coelho </p>
 
-        <span className="size-2 mx-6 rounded-full bg-stone-500" />
+        <span className="size-2 rounded-full bg-stone-500" />
 
         <a href="https://github.com/Haghalaz" target="_blank" rel="noreferrer">
           <Github className="size-5" />
