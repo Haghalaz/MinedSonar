@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 
 import explosion from "./assets/sounds/explosion.wav";
 import sonar from "./assets/sounds/sonar.wav";
+import win from "./assets/sounds/win.wav";
 
 type Square = {
   id: number;
@@ -32,6 +33,7 @@ const gridDifficulty = {
 function App() {
   const [playSonar, { sound: soundSonar }] = useSound(sonar as string);
   const [playExplosion, { sound: soundExplosion }] = useSound(explosion as string);
+  const [playWin, { sound: soundWin }] = useSound(win as string);
 
   const CreateGrid = ({ rows, cols, bombs }: GridOptions): Grid => {
     const grid: Grid = Array.from({ length: rows }, (_, rowIndex) =>
@@ -187,16 +189,18 @@ function App() {
   };
 
   useEffect(() => {
-    if (!soundSonar || !soundExplosion) return;
+    if (!soundSonar || !soundExplosion || !soundWin) return;
 
     if (mute) {
       soundSonar.volume(0);
       soundExplosion.volume(0);
+      soundWin.volume(0);
     } else {
       soundSonar.volume(0.5);
       soundExplosion.volume(0.5);
+      soundWin.volume(0.8);
     }
-  }, [soundSonar, soundExplosion, mute]);
+  }, [soundSonar, soundExplosion, soundWin, mute]);
 
   useEffect(() => {
     const timerHandler = setInterval(() => {
@@ -209,12 +213,19 @@ function App() {
   }, [isGameOver, isGameWon]);
 
   useEffect(() => {
-    const squares = grid.flat();
-
-    const remainingSquares = squares.filter((s) => !s.hasBomb).filter((s) => !s.revealed);
+    const remainingSquares = grid
+      .flat()
+      .filter((s) => !s.hasBomb)
+      .filter((s) => !s.revealed);
 
     setIsGameWon(remainingSquares.length === 0);
   }, [grid]);
+
+  useEffect(() => {
+    if (isGameWon) {
+      playWin();
+    }
+  }, [isGameWon, playWin]);
 
   useEffect(() => {
     ResetGame();
