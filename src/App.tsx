@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import useSound from "use-sound";
 
-import { Bomb, Goal, Timer } from "lucide-react";
-
-import clap from "./assets/sounds/clap.mp3";
+import { Bomb, Github, Goal, Timer, Volume2, VolumeX } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
+
+import explosion from "./assets/sounds/explosion.wav";
+import sonar from "./assets/sounds/sonar.wav";
 
 type Square = {
   id: number;
@@ -29,7 +30,8 @@ const gridDifficulty = {
 };
 
 function App() {
-  const [play] = useSound(clap as string);
+  const [playSonar, { sound: soundSonar }] = useSound(sonar as string);
+  const [playExplosion, { sound: soundExplosion }] = useSound(explosion as string);
 
   const CreateGrid = ({ rows, cols, bombs }: GridOptions): Grid => {
     const grid: Grid = Array.from({ length: rows }, (_, rowIndex) =>
@@ -117,8 +119,6 @@ function App() {
   };
 
   const ClickHandler = (current: { row: number; col: number }) => {
-    play();
-
     const selected = grid[current.row][current.col];
     const squares = grid.flat();
 
@@ -130,10 +130,12 @@ function App() {
       bombedSquares.map((sibling) => CheckSquare(sibling.position));
 
       setIsGameOver(true);
+      playExplosion();
       return;
     }
 
     CheckSquare(current);
+    playSonar();
 
     if (selected.bombsNearby === 0) {
       const legalSpots = CheckSiblings(selected.position, grid)
@@ -163,6 +165,7 @@ function App() {
   const [grid, setGrid] = useState<Grid>(CreateGrid(gridDifficulty[difficulty]));
 
   const [timer, setTimer] = useState(0);
+  const [mute, setMute] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [isGameWon, setIsGameWon] = useState(false);
 
@@ -178,6 +181,22 @@ function App() {
     const newDifficulty: Difficulty = (v as Difficulty) || "easy";
     setDifficulty(newDifficulty);
   };
+
+  const toggleMute = () => {
+    setMute((prev) => !prev);
+  };
+
+  useEffect(() => {
+    if (!soundSonar || !soundExplosion) return;
+
+    if (mute) {
+      soundSonar.volume(0);
+      soundExplosion.volume(0);
+    } else {
+      soundSonar.volume(0.5);
+      soundExplosion.volume(0.5);
+    }
+  }, [soundSonar, soundExplosion, mute]);
 
   useEffect(() => {
     const timerHandler = setInterval(() => {
@@ -288,7 +307,11 @@ function App() {
         ))}
       </div>
 
-      <div className="mx-auto my-8 flex gap-12">
+      <div className="mx-auto my-8 flex items-center gap-12">
+        <button onClick={toggleMute} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && toggleMute()} type="button">
+          {mute ? <VolumeX className="size-6" /> : <Volume2 className="size-6" />}
+        </button>
+
         <div className="items-center flex gap-2 font-bold">
           <Bomb className="size-4" />
           <p>{grid.flat().filter((r) => r.hasBomb).length}</p>
@@ -309,6 +332,16 @@ function App() {
             <SelectItem value="hard">Difícil</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="absolute hidden items-center right-12 bottom-6 md:flex">
+        <p className="text-md">Feito por Luiz Coelho </p>
+
+        <span className="size-2 mx-6 rounded-full bg-stone-500" />
+
+        <a href="https://github.com/Haghalaz" target="_blank" rel="noreferrer">
+          <Github className="size-5" />
+        </a>
       </div>
     </main>
   );
