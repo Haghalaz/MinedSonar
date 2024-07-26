@@ -121,6 +121,8 @@ function App() {
   };
 
   const ClickHandler = (current: { row: number; col: number }) => {
+    if (isGameWon || isGameOver) return;
+
     const selected = grid[current.row][current.col];
     const squares = grid.flat();
 
