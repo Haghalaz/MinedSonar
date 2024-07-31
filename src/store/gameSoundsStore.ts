@@ -9,9 +9,9 @@ import winSound from "@sounds/win.wav";
 
 type SoundState = {
   muted: boolean;
-  sonar: typeof Howl;
-  win: typeof Howl;
-  explosion: typeof Howl;
+  sonar: Howl;
+  win: Howl;
+  explosion: Howl;
   toggleMute: () => void;
 };
 

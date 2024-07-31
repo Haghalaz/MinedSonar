@@ -17,6 +17,7 @@ type GridState = {
   clickHandler: (current: { row: number; col: number }) => void;
   flagArea: (current: { row: number; col: number }) => void;
   changeDifficulty: (v: Difficulty) => void;
+  checkWinCondition: () => void;
   resetGame: () => void;
 };
 
