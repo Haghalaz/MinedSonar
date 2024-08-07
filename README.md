@@ -1,5 +1,10 @@
 # Mined Sonar
 
+<div align="center">  
+<img width="960" src="src/assets/img/mockup.png" alt="Resultado Esperado" />
+</div>
+
+
 ## Description
 Welcome to the Mined Sonar repository, a game inspired by the classic Minesweeper. This project was developed to illustrate the differences between code structured without a design pattern and another using the Atomic Design pattern.
 
